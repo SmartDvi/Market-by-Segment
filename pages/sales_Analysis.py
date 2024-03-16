@@ -36,7 +36,8 @@ layout = html.Div(
                             id='Country_Dropdown',
                             multi=True,
                             options=[{'label': x, 'value': x} for x in sorted(df['Country'].unique())],
-                            style={'color': 'black'}
+                            style={'color': 'black'},
+                            className='px-2 bg-light border, mb-4'
                         )
                     ], xs=4, sm=4, md=4, lg=4, xl=3, xxl=3
 
@@ -167,22 +168,23 @@ def update_heatmap(selected_countries):
     columns_for_correlation = ['Sales', 'Units Sold', 'Manufacturing Price', 'Gross Sales', 'COGS', 'Profit']
 
     correlation_matrix = correlation_matrix[columns_for_correlation]
+    print(correlation_matrix)
 
     # Create heatmap
-    trace = go.Heatmap(
-        z=correlation_matrix.values,
+    fig = go.Heatmap(
+        z=correlation_matrix.values.tolist(),
         x=correlation_matrix.columns,
         y=correlation_matrix.columns,
         colorscale='Viridis'
     )
 
     # Define layout
-    layout = go.Layout(
+    fig.update_layout(
         title='Correlation Matrix',
         xaxis=dict(title='Features'),
-        yaxis=dict(title='Features')
-    )
-
-    # Create figure
-    fig = go.Figure(data=[trace], layout=layout)
+        yaxis=dict(title='Features'))
     return fig
+
+
+
+print(df.info())

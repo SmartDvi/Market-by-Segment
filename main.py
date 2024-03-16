@@ -25,7 +25,7 @@ df.columns = df.columns.str.strip()
 #************************************************************************************************
 # data cleaning
 #****************************************************************************************
-print(df.info())
+
 def clean_and_convert_to_numeric(df, columns):
     for column in columns:
         # Ensure the column is of string type
@@ -43,7 +43,7 @@ df_cleaned = clean_and_convert_to_numeric(df, columns_to_convert)
 
 # Verify the data types after conversion
 #print(df_cleaned.dtypes)
-print(df.info())
+
 # extracting day name from the date
 df['Day of the week'] = pd.to_datetime(df['Date']).dt.day_name()
 

@@ -63,17 +63,17 @@ layout = html.Div(
                     ),
                     xs=12, sm=12, md=6, lg=4, xl=4
                 ),
-                dbc.Col(
-dcc.Checklist(
-            id='year_checklist',
-            options=[
-                {'label': str(year), 'value': year} for year in sorted(df['Year'].unique())
-            ],
-            value=sorted(df['Year'].unique()),
-            inline=True,
-            className='ml-5'
-                )
-            )
+            dbc.Col(
+                dcc.Checklist(
+                    id='year_checklist',
+                    options=[
+                        {'label': str(year), 'value': year} for year in sorted(df['Year'].unique())
+                    ],
+                    value=sorted(df['Year'].unique()),
+                    inline=True,
+                    className='ml-5'
+                        )
+                    )
             ]
         ),
 

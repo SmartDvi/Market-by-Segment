@@ -103,7 +103,9 @@ layout = html.Div(
                 ),
                 dbc.Col(
                     dcc.Graph(id='heatmap_correlation', figure={}),
-                    xs=8, sm=8, md=6, lg=8, xl=8
+                    xs=8, sm=8, md=6, lg=8, xl=8,
+                    className='mb-5'
+
                 )
             ]
         ),
@@ -276,6 +278,7 @@ def update_heatmap_correlation(selected_countries, selected_years):
                     title='Correlation Heatmap',
                     color_continuous_scale='RdBu',
                     color_continuous_midpoint=0,
+
 
                     )
 

@@ -106,15 +106,15 @@ layout = html.Div(
                         dcc.Graph(id='Violin_Conversion_Rates', figure={})  # Updated ID and figure
                     ])
                 ),
-                #xs=12, sm=12, md=4, lg=4, xl=4, xxl=4  # Adjusted column size
+                #xs=12, sm=12, md=4, lg=4, xl=4, xxl=4
             ),
                 dash_bootstrap_components.Col(
                     dash_bootstrap_components.Card(
                         dash_bootstrap_components.CardBody([
                             html.H5(
-                                'coorelation of sale.',
+                                '  ',
                                 className='text-primary'),
-                            dcc.Graph(id='correlation_sales', figure={})
+                            dcc.Graph(id='scatter_plot_hovadata', figure={})
                         ])
                     ),
                     xs=12, sm=12, md=4, lg=4, xl=4, xxl=4
@@ -132,8 +132,8 @@ def update_guage(selected_countries, selected_years):
         return {}
     filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
     average_profit_margin = filtered_df['Profit'].mean()
-    # Replace 220 with the actual profit value you want to display
-    # Replace 280 with the reference profit value
+
+    # the indicator figure
     fig = go.Figure(go.Indicator(
         mode="number+gauge+delta",
         value=average_profit_margin,
@@ -235,7 +235,7 @@ def update_conversion_rates(selected_countries, selected_years):
         filtered_df,
         x='Segment',
         y='Conversion Rate',
-        color=colors,
+        color='Segment',
         hover_data=df.columns,
         color_discrete_sequence = color_palette
     )
@@ -255,14 +255,15 @@ def update_conversion_rates(selected_countries, selected_years):
 
     return fig
 @callback(
-    Output('correlation_sales', 'figure'),
-    [Input('Country_Dropdown', 'value')]
+    Output('scatter_plot_hovadata', 'figure'),
+    [Input('Country_Dropdown', 'value'),
+     Input('year_checklist', 'value')]
 )
-def update_heatmap(selected_countries):
+def update_scatterplot_hovadata(selected_countries, selected_years):
     if not selected_countries:
         return {}
 
-    filtered_df = df[df['Country'].isin(selected_countries)]
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
     correlation_matrix = filtered_df.corr()
 
     # Select columns for correlation calculation (e.g., 'Sales', 'Units Sold', 'Manufacturing Price', etc.)

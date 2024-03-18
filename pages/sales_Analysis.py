@@ -52,9 +52,9 @@ layout = html.Div(
                     dcc.Checklist(
                         id='year_checklist',
                         options=[
-                            {'label': str(year), 'value': year} for year in sorted(df['Year'].unique())
+                            {'label': str(year), 'value': year} for year in sorted(df['Product'].unique())
                         ],
-                        value=sorted(df['Year'].unique()),
+                        value=sorted(df['Product'].unique()),
                         inline=True,
                         className='ml-5'
                             )
@@ -103,7 +103,7 @@ layout = html.Div(
                             'Distribution of Conversion Rates by Customer Segment',
                             className='text-primary'
                         ),
-                        dcc.Graph(id='Violin_Conversion_Rates', figure={})  # Updated ID and figure
+                        dcc.Graph(id='scatter_sales_profit', figure={})  # Updated ID and figure
                     ])
                 ),
                 #xs=12, sm=12, md=4, lg=4, xl=4, xxl=4
@@ -114,7 +114,7 @@ layout = html.Div(
                             html.H5(
                                 '  ',
                                 className='text-primary'),
-                            dcc.Graph(id='scatter_plot_hovadata', figure={})
+                            dcc.Graph(id='bar_Conversion_Rates', figure={})
                         ])
                     ),
                     xs=12, sm=12, md=4, lg=4, xl=4, xxl=4
@@ -130,7 +130,7 @@ layout = html.Div(
 def update_guage(selected_countries, selected_years):
     if not selected_countries:
         return {}
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Product'].isin(selected_years)]
     average_profit_margin = filtered_df['Profit'].mean()
 
     # the indicator figure
@@ -139,8 +139,10 @@ def update_guage(selected_countries, selected_years):
         value=average_profit_margin,
         domain={'x': [0, 1], 'y': [0, 1]},
         delta={'reference': 280, 'position': "top"},
-        title={'text': "<b>Profit</b><br><span style='color: gray; font-size:0.8em'>U.S. $</span>",
-               'font': {"size": 14}},
+       # title={'text': "<b>Target Profit</b><br><span style='color: gray; font-size:0.8em'>U.S. $</span>",
+              # 'font': {"size": 14}},
+        title=f"(KPI) Target profit for Business"
+              f" in {selected_countries} for {selected_years}",
         gauge={
             'shape': "bullet",
             'axis': {'range': [None, 300]},
@@ -169,12 +171,13 @@ def update_yearly_sales_chart(selected_countries, selected_years):
     if not selected_countries:
         return {}
 
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Product'].isin(selected_years)]
     yearly_sales = filtered_df.groupby('Year')['Sales'].sum().reset_index()
     fig = px.pie(yearly_sales,
                  names='Year',
                  values='Sales',
-                 title='Yearly Sales Trends',
+                 title=f'Yearly Sales Trends for Business '
+                       f'in {selected_countries} for {selected_years}',
                  color_discrete_sequence = color_palette)
     return fig
 
@@ -188,7 +191,7 @@ def update_monthly_sales_chart(selected_countries, selected_years):
     if not selected_countries:
         return {}
 
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Product'].isin(selected_years)]
 
     # fetching the monthly sales percentage
     monthly_sales = filtered_df.groupby(['Year', 'Month Number'])['Sales'].sum().reset_index()
@@ -204,7 +207,8 @@ def update_monthly_sales_chart(selected_countries, selected_years):
                 markers= True,
                 color='Year',
                   color_discrete_sequence = color_palette,
-                 title='Monthly Sales Growth Rate Trends by Year'
+                 title=f'Monthly Sales Growth Rate Trends by Year for '
+                       f'Business in {selected_countries} for {selected_years}'
                  )
     fig.update_layout(xaxis_title='Month in Number', yaxis_title ='Sales Growth Rate (%)')
 
@@ -212,7 +216,34 @@ def update_monthly_sales_chart(selected_countries, selected_years):
 
 
 @callback(
-    Output('Violin_Conversion_Rates', 'figure'),
+    Output('scatter_sales_profit', 'figure'),
+    [Input('Country_Dropdown', 'value'),
+     Input('year_checklist', 'value')]
+)
+def update_scatterplot_sales_profit(selected_countries, selected_years):
+    if not selected_countries or not selected_years:
+        return {}
+
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Product'].isin(selected_years)]
+
+    # Create scatter plot
+    fig = px.scatter(filtered_df, x='Sales', y='Profit', color='Country',
+                     hover_name='Country',
+                     title='Sales vs Profit by Country',
+                     labels={'Sales': 'Sales (USD)', 'Profit': 'Profit (USD)'},
+                     )
+
+    # Customize layout
+    fig.update_layout(plot_bgcolor="white",
+                      xaxis_title='Sales (USD)',
+                      yaxis_title='Profit (USD)',
+                      margin=dict(l=50, r=50, t=80, b=50)  # Adjust margin for better layout
+                      )
+    return fig
+
+
+@callback(
+    Output('bar_Conversion_Rates', 'figure'),
     [Input('Country_Dropdown', 'value'),
      Input('year_checklist', 'value')]
 )
@@ -243,7 +274,7 @@ def update_conversion_rates(selected_countries, selected_years):
    # fig.update_traces(marker=dict(color=filtered_df['Conversion Rate'].apply(lambda x: 'red' if x < 0 else 'green')))
 
     fig.update_layout(
-        title=f"Conversion Rates by Customer Segment in {selected_countries}",
+        title=f"Conversion Rates by Customer Segment for Business in {selected_countries} for {selected_years}",
         xaxis_title="Customer Segment",
         yaxis_title="Conversion Rate (%)",
         legend_title="Segment",
@@ -254,49 +285,3 @@ def update_conversion_rates(selected_countries, selected_years):
     )
 
     return fig
-@callback(
-    Output('scatter_plot_hovadata', 'figure'),
-    [Input('Country_Dropdown', 'value'),
-     Input('year_checklist', 'value')]
-)
-def update_scatterplot_hovadata(selected_countries, selected_years):
-    if not selected_countries:
-        return {}
-
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
-    correlation_matrix = filtered_df.corr()
-
-    # Select columns for correlation calculation (e.g., 'Sales', 'Units Sold', 'Manufacturing Price', etc.)
-    columns_for_correlation = ['Sales', 'Units Sold', 'Manufacturing Price', 'Gross Sales', 'COGS', 'Profit']
-    """
-    import dash_daq as daq
-
-    daq.Gauge(
-    color={"gradient":True,"ranges":{"green":[0,6],"yellow":[6,8],"red":[8,10]}},
-    value=2,
-    label='Default',
-    max=10,
-    min=0,
-)
-
-    """
-    correlation_matrix = correlation_matrix[columns_for_correlation]
-    print(correlation_matrix)
-
-    # Create heatmap
-    fig = go.Heatmap(
-        z=correlation_matrix.values.tolist(),
-        x=correlation_matrix.columns,
-        y=correlation_matrix.columns,
-        colorscale='Viridis'
-    )
-
-    # Define layout
-    fig.update_layout(
-        title='Correlation Matrix',
-        xaxis=dict(title='Features'),
-        yaxis=dict(title='Features'))
-    return fig
-
-
-

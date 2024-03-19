@@ -38,6 +38,8 @@ layout = html.Div(
             [
                 dash_bootstrap_components.Col(
                     [
+                        html.Div([
+                        html.H5('List of Counties'),
                         dcc.Dropdown(
                             id='Country_Dropdown',
                             multi=True,
@@ -45,10 +47,13 @@ layout = html.Div(
                             style={'color': 'black'},
                             className='px-2 bg-light border, mb-4'
                         )
+                        ])
                     ], xs=4, sm=4, md=4, lg=4, xl=3, xxl=3
 
                 ),
-                dash_bootstrap_components.Col(
+                dash_bootstrap_components.Col([
+                    html.Div([
+                    html.H5('Product Checklist'),
                     dcc.Checklist(
                         id='year_checklist',
                         options=[
@@ -56,9 +61,14 @@ layout = html.Div(
                         ],
                         value=sorted(df['Product'].unique()),
                         inline=True,
-                        className='ml-5'
+                        className='ml-5 ms-3'
+
                             )
+                        ])
+                    ],
+
                         )
+
             ]
         ),
         dash_bootstrap_components.Row([
@@ -66,8 +76,8 @@ layout = html.Div(
                     dash_bootstrap_components.Card(
                         dash_bootstrap_components.CardBody([
                             html.H5(
-                                'Gauge.',
-                                className='text-primary'),
+                                'KPI Project Target',
+                                className='text-light'),
                             dcc.Graph(id='Busines_gauge', figure={})
                         ])
                     ),
@@ -78,10 +88,10 @@ layout = html.Div(
                     dash_bootstrap_components.Card(
                         dash_bootstrap_components.CardBody([
                             html.H5('Analyzing yearly sales trends',
-                                    className='text-primary'),
+                                    className='text-light'),
                             dcc.Graph(id='Linechart_sale_trend_by_year', figure={})
                         ])
-                    ),
+                    ),  xs=4, sm=4, md=4, lg=4, xl=4, xxl=4
 
                 ),
 
@@ -89,7 +99,7 @@ layout = html.Div(
                     dash_bootstrap_components.Card(
                         dash_bootstrap_components.CardBody([
                             html.H5('Monthly Sales Growth Rate',
-                                    className='text-primary'),
+                                    className='text-light'),
                             dcc.Graph(id='Linechart_Monthly_Sales_Growth_Rate', figure={})
                         ])
                     ),
@@ -99,25 +109,24 @@ layout = html.Div(
             dash_bootstrap_components.Col(
                 dash_bootstrap_components.Card(
                     dash_bootstrap_components.CardBody([
-                        html.H5(
-                            'Distribution of Conversion Rates by Customer Segment',
-                            className='text-primary'
-                        ),
+                    html.H5(
+                'Distribution of Conversion Rates by Customer Segment',
+                className='text-light'),
                         dcc.Graph(id='scatter_sales_profit', figure={})  # Updated ID and figure
                     ])
                 ),
-                #xs=12, sm=12, md=4, lg=4, xl=4, xxl=4
+                xs=8, sm=8, md=8, lg=8, xl=8, xxl=8
             ),
                 dash_bootstrap_components.Col(
                     dash_bootstrap_components.Card(
                         dash_bootstrap_components.CardBody([
                             html.H5(
-                                '  ',
-                                className='text-primary'),
+                                ' Impact of Segment on Sales ',
+                                className='text-light'),
                             dcc.Graph(id='bar_Conversion_Rates', figure={})
                         ])
                     ),
-                    xs=12, sm=12, md=4, lg=4, xl=4, xxl=4
+                    xs=4, sm=4, md=4, lg=4, xl=4, xxl=4
                 ),
         ]    )
 
@@ -176,8 +185,7 @@ def update_yearly_sales_chart(selected_countries, selected_years):
     fig = px.pie(yearly_sales,
                  names='Year',
                  values='Sales',
-                 title=f'Yearly Sales Trends for Business '
-                       f'in {selected_countries} for {selected_years}',
+                 title=f'Yearly Sales Trends in {", ".join(selected_countries)} for {", ".join(selected_years)}',
                  color_discrete_sequence = color_palette)
     return fig
 
@@ -206,9 +214,8 @@ def update_monthly_sales_chart(selected_countries, selected_years):
                  y='Sales Growth Rate',
                 markers= True,
                 color='Year',
-                  color_discrete_sequence = color_palette,
-                 title=f'Monthly Sales Growth Rate Trends by Year for '
-                       f'Business in {selected_countries} for {selected_years}'
+                color_discrete_sequence = color_palette,
+                title=f'Monthly Sales Growth Rate {", ".join(selected_countries)} for {", ".join(selected_years)}'
                  )
     fig.update_layout(xaxis_title='Month in Number', yaxis_title ='Sales Growth Rate (%)')
 
@@ -274,7 +281,7 @@ def update_conversion_rates(selected_countries, selected_years):
    # fig.update_traces(marker=dict(color=filtered_df['Conversion Rate'].apply(lambda x: 'red' if x < 0 else 'green')))
 
     fig.update_layout(
-        title=f"Conversion Rates by Customer Segment for Business in {selected_countries} for {selected_years}",
+        title=f"Conversion Rates by Customer Segment for Business",
         xaxis_title="Customer Segment",
         yaxis_title="Conversion Rate (%)",
         legend_title="Segment",

@@ -80,15 +80,38 @@ layout = html.Div(
         dbc.Row(
             [
                 dbc.Col(
-                    dcc.Graph(id='product_contribution_chart', figure={}),
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H5(
+                                'Product Contribution to Sales',
+                                className='text-light'
+                            ),
+                            dcc.Graph(id='product_contribution_chart', figure={}),
+                        ])
+                    ),
+                    xs=12, sm=12, md=6, lg=4, xl=4
+
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H5(
+                                'Product Contribution to Sales',
+                                className='text-light'),
+                                    dcc.Graph(id='discount_band_impact_chart', figure={}),
+                                ])
+                        ),
                     xs=12, sm=12, md=6, lg=4, xl=4
                 ),
                 dbc.Col(
-                    dcc.Graph(id='discount_band_impact_chart', figure={}),
-                    xs=12, sm=12, md=6, lg=4, xl=4
-                ),
-                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H5(
+                                'Profitability of Product',
+                                className='text-light'),
                     dcc.Graph(id='profitability_chart', figure={}),
+                        ])
+                    ),
                     xs=12, sm=12, md=6, lg=4, xl=4
                 )
             ]
@@ -97,12 +120,26 @@ layout = html.Div(
         dbc.Row(
             [
                 dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H5(
+                                'Profit and Lost for Each product',
+                                className='text-light'),
                     dcc.Graph(id='Waterfall_product_details', figure={}),
+                        ])
+                    ),
                      xs=4, sm=4, md=2, lg=4, xl=4,
                     className="mb-3"
                 ),
                 dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H5(
+                                'Variable Coorelation on Product',
+                                className='text-light'),
                     dcc.Graph(id='heatmap_correlation', figure={}),
+                        ])
+                    ),
                     xs=8, sm=8, md=6, lg=8, xl=8,
                     className='mb-5'
 
@@ -288,6 +325,7 @@ def update_heatmap_correlation(selected_countries, selected_years):
         title='Heatmap Correlation between Product and Important Variables',
         xaxis=dict(title='Variables'),
         yaxis=dict(title='Product',
+
         )
 
     )

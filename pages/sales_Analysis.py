@@ -57,7 +57,7 @@ layout = html.Div(
                     dcc.Checklist(
                         id='year_checklist',
                         options=[
-                            {'label': str(year), 'value': year} for year in sorted(df['Product'].unique())
+                            {'label': str(Product), 'value': Product} for Product in sorted(df['Product'].unique())
                         ],
                         value=sorted(df['Product'].unique()),
                         inline=True,
@@ -76,7 +76,7 @@ layout = html.Div(
                     dash_bootstrap_components.Card(
                         dash_bootstrap_components.CardBody([
                             html.H5(
-                                'KPI Project Target',
+                                'KPI on Profit Marget Target',
                                 className='text-light'),
                             dcc.Graph(id='Busines_gauge', figure={})
                         ])

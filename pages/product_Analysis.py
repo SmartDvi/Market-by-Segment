@@ -10,7 +10,7 @@ dash.register_page(__name__, name='Product Analysis')
 # Load the dataset
 df = pd.read_csv('C:\\Users\\Moritus Peters\\Documents\\Datasets\\Sale Market Data\\Financials.csv')
 
-# Clean the data
+# Clean the dataimport dash_bootstrap_components as dbc
 df.columns = df.columns.str.strip()
 
 # Define data cleaning function

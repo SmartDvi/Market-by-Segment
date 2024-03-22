@@ -26,8 +26,8 @@ The dataset used in this project contains sales and financial data, including in
         - Business Gauge: Indicator displaying average profit margin.
         - Yearly Sales Trends Chart: Pie chart illustrating sales trends by year.
         - Monthly Sales Growth Rate Chart: Line chart showing monthly sales growth rates.
-        - Violin Conversion Rates: Bar chart representing conversion rates by customer segment.
-        - Scatter Plot with Hover Data: Heatmap displaying correlation matrix with hover data.
+        - bar Conversion Rates: Bar chart representing conversion rates by customer segment.
+        -  Variable relationship: Heatmap displaying correlation matrix with hover data.
 
 #### Data Variables
 - **Segment:** Various sectors or market segments.

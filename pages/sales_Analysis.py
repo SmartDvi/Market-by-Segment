@@ -214,6 +214,8 @@ def update_monthly_sales_chart(selected_countries, selected_years):
                  y='Sales Growth Rate',
                 markers= True,
                 color='Year',
+
+                  hover_data={'Sales Growth Rate': ':.3f'},
                 color_discrete_sequence = color_palette,
                 title=f'Monthly Sales Growth Rate {", ".join(selected_countries)} for {", ".join(selected_years)}'
                  )

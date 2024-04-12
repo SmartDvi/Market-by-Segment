@@ -26,7 +26,7 @@ df_cleaned = clean_and_convert_to_numeric(df, columns_to_convert)
 
 df['Day of the week'] = pd.to_datetime(df['Date']).dt.day_name()
 
-monthly_sales_growth_rate = df.groupby(['Year', 'Month Number'])['Sales'].sum().pct_change() * 100
+monthly_sales_growth_rate = df.groupby(['Year', 'Month Number', 'Month Name'])['Sales'].sum().pct_change() * 100
 
 #Define custom color palette
 color_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -202,7 +202,7 @@ def update_monthly_sales_chart(selected_countries, selected_years):
     filtered_df = df[df['Country'].isin(selected_countries) & df['Product'].isin(selected_years)]
 
     # fetching the monthly sales percentage
-    monthly_sales = filtered_df.groupby(['Year', 'Month Number'])['Sales'].sum().reset_index()
+    monthly_sales = filtered_df.groupby(['Year', 'Month Number', 'Month Name'])['Sales'].sum().reset_index()
 
     # calculating sales Growth Rate
     monthly_sales['Sales Growth Rate'] = monthly_sales.groupby('Year')['Sales'].pct_change() * 100
@@ -214,8 +214,8 @@ def update_monthly_sales_chart(selected_countries, selected_years):
                  y='Sales Growth Rate',
                 markers= True,
                 color='Year',
-
-                  hover_data={'Sales Growth Rate': ':.3f'},
+                hover_name='Month Name',
+                hover_data={'Sales Growth Rate': ':.3f'},
                 color_discrete_sequence = color_palette,
                 title=f'Monthly Sales Growth Rate {", ".join(selected_countries)} for {", ".join(selected_years)}'
                  )
@@ -237,7 +237,7 @@ def update_scatterplot_sales_profit(selected_countries, selected_years):
 
     # Create scatter plot
     fig = px.scatter(filtered_df, x='Sales', y='Profit', color='Country',
-                     hover_name='Country',
+                     hover_name= 'Month Name',
                      title='Sales vs Profit by Country',
                      labels={'Sales': 'Sales (USD)', 'Profit': 'Profit (USD)'},
                      )

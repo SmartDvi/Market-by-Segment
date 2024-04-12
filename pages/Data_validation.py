@@ -7,9 +7,11 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from dash import dcc, html, callback, Output, Input
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 import dash_bootstrap_components as dbc
 from statsmodels.formula.api import ols
+from sklearn.impute import SimpleImputer
 from scipy.stats import pearsonr
 import plotly.express as px
 from pandas.api.types import CategoricalDtype
@@ -24,6 +26,15 @@ dash.register_page(__name__, name='Data Validation')
 df = pd.read_csv('C:\\Users\\Moritus Peters\\Documents\\Datasets\\Sale Market Data\\Financials.csv')
 
 df.columns = df.columns.str.strip()
+
+import pandas as pd
+
+def fill_nan_with_zero(df):
+    return df.fillna(0)
+
+# Assuming df is your DataFrame
+filled_df = fill_nan_with_zero(df)
+
 
 # Data cleaning function
 def clean_and_convert_to_numeric(df, columns):
@@ -249,3 +260,85 @@ def update_bar_predictor_threshold(selected_countries, selected_products):
 
     return fig
 
+@callback(Output('scatterplot_accuracy_model', 'figure'),
+          [Input('Country_Dropdown', 'value'),
+           Input('product_checklist', 'value')],
+          prevent_initial_call=True)
+def update_scatterplot_accuracy(selected_countries, selected_products):
+    filtered_df = df.copy()
+
+    # Filter by selected countries
+    if selected_countries:
+        filtered_df = filtered_df[filtered_df['Country'].isin(selected_countries)]
+
+    # Filter by selected products
+    if selected_products:
+        filtered_df = filtered_df[filtered_df['Product'].isin(selected_products)]
+
+    # Drop rows with missing target values
+    filtered_df.dropna(subset=['Profit'], inplace=True)
+
+    # Define dependent variable
+    y_name = 'Profit'
+
+    # Create dummy variables for categorical columns
+    df_dummies = pd.get_dummies(filtered_df, columns=['Country', 'Product'], drop_first=True)
+
+    # Independent variables
+    X_names = [col for col in df_dummies.columns if col != y_name]
+
+    # Split data into training and testing sets
+    X_data = df_dummies[X_names]
+    y_data = df_dummies[y_name]
+    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size=0.20, shuffle=False)
+
+    # One-hot encode categorical variables
+    encoder = OneHotEncoder()
+    encoder.fit(X_train[['Segment', 'Discount_Band']])
+    X_train_encoded = encoder.transform(X_train[['Segment', 'Discount_Band']])
+    X_test_encoded = encoder.transform(X_test[['Segment', 'Discount_Band']])
+
+    # Instantiate the model
+    lm = LinearRegression()
+
+    # fit the model
+    lm.fit(X_train_encoded, y_train)
+
+    # Predictions
+    train_pred = lm.predict(X_train_encoded)
+    test_pred = lm.predict(X_test_encoded)
+
+    # Evaluation metrics
+    train_mse = mean_squared_error(y_train, train_pred)
+    test_mse = mean_squared_error(y_test, test_pred)
+    train_r2 = r2_score(y_train, train_pred)
+    test_r2 = r2_score(y_test, test_pred)
+    train_mae = mean_absolute_error(y_train, train_pred)
+    test_mae = mean_absolute_error(y_test, test_pred)
+
+    # Creating scatter plot
+    fig = go.Figure(go.Scatter(x=y_train,
+                               y=train_pred,
+                               mode='markers',
+                               name='Training  Data'))
+    # plot testing data
+    fig.add_trace(go.Scatter(x=y_test,
+                             y=test_pred,
+                             mode='markers',
+                             name='Testing Data'))
+
+    # updating Layout
+    fig.update_layout(title='Assessing Model Accuracy',
+                      xaxis_title='Actual Profit',
+                      yaxis_title='Predicted Profit',
+                      showlegend=True)
+
+    # print the evaluation metrics
+    print(f"Training MSE: {train_mse}")
+    print(f"Testing MSE: {test_mse}")
+    print(f"Training R-squared : {train_r2}")
+    print(f"Testing R-squared : {test_r2}")
+    print(f"Training MAE : {train_mae}")
+    print(f"Testing MAE: {test_mae}")
+
+    return fig

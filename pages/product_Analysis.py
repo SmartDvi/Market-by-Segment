@@ -291,7 +291,7 @@ def update_heatmap_correlation(selected_countries, selected_years):
     filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
 
     # Select relevant columns
-    columns_of_interest = ['Product', 'Discount Efficiency', 'Profit Margin', 'Sales Growth', 'Sale Price', 'Discounts', 'COGS', 'Profit', 'Sales', 'Units Sold', ' Manufacturing Price']
+    columns_of_interest = ['Product', 'Segment', 'Discount Band', 'Discount Efficiency', 'Profit Margin', 'Sales Growth', 'Sale Price', 'Discounts', 'COGS', 'Profit', 'Sales', 'Units Sold', ' Manufacturing Price']
 
     # Remove leading and trailing spaces from column names
     columns_of_interest = [col.strip() for col in columns_of_interest]

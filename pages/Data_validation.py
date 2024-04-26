@@ -9,8 +9,12 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
+import dash_daq as daq
 import dash_bootstrap_components as dbc
 from statsmodels.formula.api import ols
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from scipy.stats import pearsonr
 import plotly.express as px
@@ -27,14 +31,12 @@ df = pd.read_csv('C:\\Users\\Moritus Peters\\Documents\\Datasets\\Sale Market Da
 
 df.columns = df.columns.str.strip()
 
-import pandas as pd
 
 def fill_nan_with_zero(df):
     return df.fillna(0)
 
 # Assuming df is your DataFrame
 filled_df = fill_nan_with_zero(df)
-
 
 # Data cleaning function
 def clean_and_convert_to_numeric(df, columns):
@@ -47,7 +49,32 @@ columns_to_convert = ['Units Sold', 'Manufacturing Price', 'Sale Price', 'Gross 
                       'Profit']
 df = clean_and_convert_to_numeric(df, columns_to_convert)
 
-import pandas as pd
+
+# Function to select features with high correlation with the target variable
+def select_features(df, target, threshold=0.1):
+    # Filter out non-numeric columns
+    numeric_df = df.select_dtypes(include=np.number)
+
+    corrs = numeric_df.corr()[target].abs().sort_values(ascending=False)
+    return corrs[corrs >= threshold].index.tolist()
+
+
+# Function to check data quality and preprocess data
+def preprocess_data(df):
+    # Fill missing values
+    df.fillna(0, inplace=True)
+
+    # Scale features
+    scaler = StandardScaler()
+    df[df.columns] = scaler.fit_transform(df[df.columns])
+
+    return df
+
+
+# Function to evaluate model using cross-validation
+def evaluate_model(model, X, y):
+    scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
+    return -scores.mean()
 
 def rename_columns_with_keywords(df, keywords, replace_char='_'):
     renamed_columns = {}
@@ -73,6 +100,69 @@ df = rename_columns_with_keywords(df, keywords)
 
 layout = html.Div(
     [
+        dbc.Row([
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Training MSE',
+                            className='text-light'),
+                        html.Div(id='card_Training_MSE'),
+                    ])
+                )
+            ),
+
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Testing MSE',
+                            className='text-light'),
+                        html.Div(id='card_Testing_MSE'),
+                    ])
+                    ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Training R-squared',
+                            className='text-light'),
+                        html.Div(id='card_Training_R_squared'),
+                    ])
+                ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Testing R-squared',
+                            className='text-light'),
+                        html.Div(id='card_Testing_R_squared'),
+                    ])
+                ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Training MAE',
+                            className='text-light'),
+                        html.Div(id='card_Training_MAE'),
+                    ])
+                    ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Testing MAE',
+                            className='text-light'),
+                        html.Div(id='card_Testing_MAE'),
+                    ])
+                ),
+            ),
+        ]),
         dbc.Row(
             [
                 dbc.Col(
@@ -152,11 +242,118 @@ layout = html.Div(
 )
 
 
+@callback(
+    [Output('card_Training_MSE', 'children'),
+     Output('card_Testing_MSE', 'children'),
+     Output('card_Training_R_squared', 'children'),
+     Output('card_Testing_R_squared', 'children'),
+     Output('card_Training_MAE', 'children'),
+     Output('card_Testing_MAE', 'children')],
+    [Input('Country_Dropdown', 'value'),
+     Input('product_checklist', 'value')],
+    prevent_initial_call=True,
+    allow_duplicate=True
+)
+def update_metrics(selected_countries, selected_products):
+    filtered_df = df.copy()
 
+    # Filter by selected countries
+    if selected_countries:
+        filtered_df = filtered_df[filtered_df['Country'].isin(selected_countries)]
+
+    # Filter by selected products
+    if selected_products:
+        filtered_df = filtered_df[filtered_df['Product'].isin(selected_products)]
+
+    # Drop rows with missing target values
+    filtered_df.dropna(subset=['Profit'], inplace=True)
+
+    # Select features
+    features = select_features(filtered_df, 'Profit')
+    filtered_df = filtered_df[features + ['Profit']]
+
+    # Preprocess data
+    filtered_df = preprocess_data(filtered_df)
+
+    # Define dependent variable
+    y_name = 'Profit'
+
+    # Independent variables
+    X_names = [col for col in filtered_df.columns if col != y_name]
+
+    # Split data into training and testing sets
+    X_data = filtered_df[X_names]
+    y_data = filtered_df[y_name]
+    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size=0.20, shuffle=False)
+
+    # Instantiate the model (Random Forest)
+    model = RandomForestRegressor()
+
+    # fit the model
+    model.fit(X_train, y_train)
+
+    # Predictions
+    train_pred = model.predict(X_train)
+    test_pred = model.predict(X_test)
+
+    # Evaluation metrics
+    train_mse = round(mean_squared_error(y_train, train_pred), 4)
+    test_mse = round(mean_squared_error(y_test, test_pred), 4)
+    train_r2 = round(r2_score(y_train, train_pred), 4)
+    test_r2 = round(r2_score(y_test, test_pred), 4)
+    train_mae = round(mean_absolute_error(y_train, train_pred), 4)
+    test_mae = round(mean_absolute_error(y_test, test_pred), 4)
+
+    train_mse_led = daq.LEDDisplay(
+        value=train_mse,
+        size=35,
+        color="#5E7CFF",
+        className='dark-theme-control'
+    )
+
+    test_mse_led = daq.LEDDisplay(
+        value=test_mse,
+        size=35,
+        color="#5E7CFF",
+        className='dark-theme-control'
+    )
+
+    train_r2_led = daq.LEDDisplay(
+        value=train_r2,
+        size=35,
+        color="#5E7CFF",
+        className='dark-theme-control'
+    )
+
+    test_r2_led = daq.LEDDisplay(
+        value=test_r2,
+        size=35,
+        color="#5E7CFF",
+        className='dark-theme-control'
+    )
+
+    train_mae_led = daq.LEDDisplay(
+        value=train_mae,
+        size=35,
+        color="#5E7CFF",
+        className='dark-theme-control'
+    )
+
+    test_mae_led = daq.LEDDisplay(
+        value=test_mae,
+        size=35,
+        color="#5E7CFF",
+        className='dark-theme-control'
+    )
+
+    return train_mse_led, test_mse_led, train_r2_led, test_r2_led, train_mae_led, test_mae_led
 @callback(Output('Table_Pvalues_and_corr', 'figure'),
           [Input('Country_Dropdown', 'value'),
            Input('product_checklist', 'value')],
-          prevent_initial_call=True)
+          prevent_initial_call=True,
+          allow_duplicate=True)
+
+
 def predictors_threshold(selected_countries, selected_products):
     if not selected_countries or not selected_products:
         return {}
@@ -220,6 +417,7 @@ def predictors_threshold(selected_countries, selected_products):
               [Input('Country_Dropdown', 'value'),
                Input('product_checklist', 'value')],
               prevent_initial_call=True)
+
 def update_bar_predictor_threshold(selected_countries, selected_products):
     filtered_df = df.copy()
 

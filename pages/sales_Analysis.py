@@ -34,6 +34,69 @@ color_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b
 # Define layout
 layout = html.Div(
     [
+dash_bootstrap_components.Row([
+            dash_bootstrap_components.Col(
+                dash_bootstrap_components.Card(
+                    dash_bootstrap_components.CardBody([
+                        html.H6(
+                            'Total Gross Sales',
+                            className='text-light text-center'),
+                        html.Div(id='card_Total_gross_sales'),
+                    ])
+                )
+            ),
+
+            dash_bootstrap_components.Col(
+                dash_bootstrap_components.Card(
+                    dash_bootstrap_components.CardBody([
+                        html.H6(
+                            'Net Sales',
+                            className='text-light text-center'),
+                        html.Div(id='card_Net_Sales'),
+                    ])
+                    ),
+            ),
+            dash_bootstrap_components.Col(
+                dash_bootstrap_components.Card(
+                    dash_bootstrap_components.CardBody([
+                        html.H6(
+                            '3 Month ROI',
+                            className='text-light text-center'),
+                        html.Div(id='card_3_Month_ROI'),
+                    ])
+                ),
+            ),
+    dash_bootstrap_components.Col(
+        dash_bootstrap_components.Card(
+                    dash_bootstrap_components.CardBody([
+                        html.H6(
+                            'Last Week Profit',
+                            className='text-light text-center'),
+                        html.Div(id='card_last_week_profit'),
+                    ])
+                ),
+            ),
+            dash_bootstrap_components.Col(
+                dash_bootstrap_components.Card(
+                    dash_bootstrap_components.CardBody([
+                        html.H6(
+                            'Last Month Profit',
+                            className='text-light text-center'),
+                        html.Div(id='card_last_month_profit'),
+                    ])
+                    ),
+            ),
+            dash_bootstrap_components.Col(
+                dash_bootstrap_components.Card(
+                    dash_bootstrap_components.CardBody([
+                        html.H6(
+                            'Profit Margin',
+                            className='text-light text-center'),
+                        html.Div(id='card_profit_margin'),
+                    ])
+                ),
+            ),
+        ]),
         dash_bootstrap_components.Row(
             [
                 dash_bootstrap_components.Col(
@@ -132,6 +195,83 @@ layout = html.Div(
 
     ]
 )
+
+@callback(
+    [Output('card_Total_gross_sales', 'children'),
+     Output('card_Net_Sales', 'children'),
+    Output('card_3_Month_ROI', 'children'),
+    Output('card_last_week_profit', 'children'),
+    Output('card_last_month_profit', 'children'),
+    Output('card_profit_margin', 'children')],
+    [Input('Country_Dropdown', 'value'),
+    Input('year_checklist', 'value')],
+    prevent_initial_callbacks= True,
+    allow_duplcate =True)
+
+
+def update_metric(selected_countries, selected_products):
+    filtered_df = df.copy()
+
+    # fitlter by selected countries on the dropdown
+    if selected_countries:
+        filtered_df = filtered_df[filtered_df['Country'].isin(selected_countries)]
+
+    # fitlter by selected product on the checklist
+    if selected_countries:
+        filtered_df = filtered_df[filtered_df['Product'].isin(selected_products)]
+
+    filtered_df['Date'] = pd.to_datetime(filtered_df['Date'])
+
+    # calculating the mettric card for sales analysis
+    total_gross_sales = filtered_df['Gross Sales'].sum()
+    total_discounts = filtered_df['Discounts'].sum()
+    net_sales = total_gross_sales - total_discounts
+    sales_growth = ((filtered_df['Sales'] - filtered_df['Sales'].shift(1)) / filtered_df['Sales'].shift(1)).mean() * 100
+    profit_margin = (filtered_df['Profit'] / filtered_df['Sales']).mean() * 100
+
+    # filter data for the last 3 months
+    last_3_months = filtered_df[filtered_df['Date'] >= filtered_df['Date'].max() - pd.DateOffset(months=3)]
+
+    # calculate 3 Months Return of Investment
+    total_investment = last_3_months['COGS'].sum() # fetching the total cost of goods sold in the last 3 months
+    total_return = last_3_months['Profit'].sum()  # fetching the total profit for the last 3 months
+    Three_months_ROI = (total_return - total_investment)/ total_investment * 100
+
+    # filter dta for the last month
+    last_month = filtered_df[filtered_df['Date'].dt.month == filtered_df['Date'].max().month]
+
+    # calculating last month profit
+    last_month_profit = last_month['Profit'].sum()
+
+    # fetching data for last week
+    last_week = filtered_df[filtered_df['Date'] >= filtered_df['Date'].max() - pd.DateOffset(weeks = 1)]
+
+    # calculating last week profit
+    last_week_profit = last_week['Profit'].sum()
+
+    # formate metric values for display
+
+    formatted_total_sales = "${:,.2f}".format(total_gross_sales)
+    formatted_net_sales = "${:,.2f}".format(net_sales)
+    formatted_3_month_roi = "{:.2f}%".format(Three_months_ROI)
+    formatted_last_week_profit = "${:,.2f}".format(last_week_profit)
+    formatted_last_month_profit = "${:,.2f}".format(last_month_profit)
+    formatted_profit_margin = "{:.2f}%".format(profit_margin)
+
+    return [
+        html.H5(f"{formatted_total_sales}",),
+
+        html.H5(f"{formatted_net_sales}"),
+        html.H5(f"{formatted_3_month_roi}"),
+        html.H5(f"{formatted_last_week_profit}"),
+        html.H5(f"{formatted_last_month_profit}"),
+        html.H5(f"{formatted_profit_margin}"),
+    ]
+
+
+
+
+
 @callback(Output('Busines_gauge', 'figure'),
     [Input('Country_Dropdown', 'value'),
      Input('year_checklist', 'value')]
@@ -218,6 +358,7 @@ def update_monthly_sales_chart(selected_countries, selected_years):
                 hover_data={'Sales Growth Rate': ':.3f'},
                 color_discrete_sequence = color_palette,
                 title=f'Monthly Sales Growth Rate {", ".join(selected_countries)} for {", ".join(selected_years)}'
+
                  )
     fig.update_layout(xaxis_title='Month in Number', yaxis_title ='Sales Growth Rate (%)')
 

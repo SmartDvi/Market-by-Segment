@@ -51,9 +51,74 @@ color_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b
 # Define layout
 layout = html.Div(
     [
+dbc.Row([
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Total Unit Sold',
+                            className='text-light'),
+                        html.Div(id='card_total_unity_sold'),
+                    ])
+                )
+            ),
+
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Total Manufacturing Price',
+                            className='text-light'),
+                        html.Div(id='card_Total_Manufacturing_Price'),
+                    ])
+                    ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Total Products',
+                            className='text-light'),
+                        html.Div(id='card_Total_Products'),
+                    ])
+                ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Total COGS',
+                            className='text-light'),
+                        html.Div(id='card_Total_COGS'),
+                    ])
+                ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Training MAE',
+                            className='text-light'),
+                        html.Div(id='card_Training_MAE'),
+                    ])
+                    ),
+            ),
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody([
+                        html.H6(
+                            'Testing MAE',
+                            className='text-light'),
+                        html.Div(id='card_Testing_MAE'),
+                    ])
+                ),
+            ),
+        ]),
         dbc.Row(
             [
-                dbc.Col(
+                dbc.Col([
+                    html.Div([
+                        html.H5('Country Dropdown'),
                     dcc.Dropdown(
                         id='Country_Dropdown',
                         multi=True,
@@ -61,19 +126,21 @@ layout = html.Div(
                         style={'color': 'black'},
                         className='px-2 bg-light border, mb-4'
                     ),
-                    xs=12, sm=12, md=6, lg=4, xl=4
-                ),
-            dbc.Col(
+                    ])
+                ],xs=12, sm=12, md=6, lg=4, xl=4),
+            dbc.Col([
+                html.Div([
+                html.H5('Year Checklist'),
                 dcc.Checklist(
                     id='year_checklist',
                     options=[
-                        {'label': str(year), 'value': year} for year in sorted(df['Year'].unique())
-                    ],
+                        {'label': str(year), 'value': year} for year in sorted(df['Year'].unique())],
                     value=sorted(df['Year'].unique()),
                     inline=True,
                     className='ml-5'
                         )
-                    )
+                    ])
+                    ])
             ]
         ),
 

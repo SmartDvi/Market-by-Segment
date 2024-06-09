@@ -306,42 +306,42 @@ def update_metrics(selected_countries, selected_products):
 
     train_mse_led = daq.LEDDisplay(
         value=train_mse,
-        size=35,
+        size=25,
         color="#5E7CFF",
         className='dark-theme-control'
     )
 
     test_mse_led = daq.LEDDisplay(
         value=test_mse,
-        size=35,
+        size=25,
         color="#5E7CFF",
         className='dark-theme-control'
     )
 
     train_r2_led = daq.LEDDisplay(
         value=train_r2,
-        size=35,
+        size=25,
         color="#5E7CFF",
         className='dark-theme-control'
     )
 
     test_r2_led = daq.LEDDisplay(
         value=test_r2,
-        size=35,
+        size=25,
         color="#5E7CFF",
         className='dark-theme-control'
     )
 
     train_mae_led = daq.LEDDisplay(
         value=train_mae,
-        size=35,
+        size=25,
         color="#5E7CFF",
         className='dark-theme-control'
     )
 
     test_mae_led = daq.LEDDisplay(
         value=test_mae,
-        size=35,
+        size=25,
         color="#5E7CFF",
         className='dark-theme-control'
     )

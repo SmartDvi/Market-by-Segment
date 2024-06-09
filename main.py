@@ -53,6 +53,7 @@ external_css = ["https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap
 app = dash.Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.DARKLY] )
 
 
+
 siderbar = dbc.Nav(
     [
         dbc.NavLink(
@@ -72,7 +73,7 @@ siderbar = dbc.Nav(
 app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.Div("Market Segment financial/ Business Analysis Dashboard",
-                           style={'frontSize': 200, 'textAlign': 'center'}))
+                           style={'fontSize': 30, 'textAlign': 'center'}))
     ]),
     html.Hr(),
 

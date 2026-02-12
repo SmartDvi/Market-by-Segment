@@ -1,400 +1,297 @@
 import dash
+import pandas as pd
 from dash import dcc, html, callback, Output, Input
 import plotly.express as px
-import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-import pandas as pd
+import dash_bootstrap_components as dbc
+from dash_ag_grid import AgGrid
+from utils import (
+    df, get_kpi_metrics, profit_product_year, profit_month_year,
+    product_efficiency, product_contribution, profit_by_country,
+    discount_profit_table
+)
 
-dash.register_page(__name__, name='Product Analysis')
+dash.register_page(__name__, path='/product_analysis', name="📊 Product Analysis", order=2)
 
-# Load the dataset
-df = pd.read_csv('C:\\Users\\Moritus Peters\\Documents\\Datasets\\Sale Market Data\\Financials.csv')
+COLORS = {
+    'primary': '#2E86AB', 'secondary': '#A23B72', 'success': '#73AB84',
+    'warning': '#F18F01', 'danger': '#C73E1D', 'dark': '#2D3047'
+}
 
-# Clean the dataimport dash_bootstrap_components as dbc
-df.columns = df.columns.str.strip()
-
-# Define data cleaning function
-def clean_and_convert_to_numeric(df, columns):
-    for column in columns:
-        df[column] = pd.to_numeric(df[column].str.replace(r'[^\d.]', '', regex=True), errors='coerce')
-    return df
-
-# Clean and convert columns to numeric
-columns_to_convert = ['Units Sold', 'Manufacturing Price', 'Sale Price', 'Gross Sales', 'Discounts', 'Sales', 'COGS', 'Profit']
-
-df = clean_and_convert_to_numeric(df, columns_to_convert)
-
-# calculating the profit margin
-df['Profit Margin'] = (df['Profit'] / df['Sales']) * 100
-
-# Calculating the discount efficiency for the products
-df['Discount Efficiency'] = (df['Discounts'] / df['Gross Sales']) * 100
-
-# Drop rows with NaN values in the calculated columns
-df.dropna(subset=['Profit Margin', 'Discount Efficiency'], inplace=True)
-
-# Extract day of the week from the date
-df['Day of the week'] = pd.to_datetime(df['Date']).dt.day_name()
-
-# calculating the sales Growth for each product
-df['Previous Sales'] = df.groupby('Product')['Sales'].shift(1)
-df['Sales Growth'] = ((df['Sales'] - df['Previous Sales']) / df['Previous Sales'] * 100)
-
-
-# Drop rows with Nan values in Sales Growth Column (for the first sales data of each product)
-df = df.dropna(subset=['Sales Growth'])
-
-#Define custom color palette
-color_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-
-
-# Define layout
-layout = html.Div(
-    [
-dbc.Row([
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6(
-                            'Total Unit Sold',
-                            className='text-light'),
-                        html.Div(id='card_total_unity_sold'),
-                    ])
-                )
-            ),
-
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6(
-                            'Total Manufacturing Price',
-                            className='text-light'),
-                        html.Div(id='card_Total_Manufacturing_Price'),
-                    ])
-                    ),
-            ),
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6(
-                            'Total Products',
-                            className='text-light'),
-                        html.Div(id='card_Total_Products'),
-                    ])
-                ),
-            ),
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6(
-                            'Total COGS',
-                            className='text-light'),
-                        html.Div(id='card_Total_COGS'),
-                    ])
-                ),
-            ),
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6(
-                            'Training MAE',
-                            className='text-light'),
-                        html.Div(id='card_Training_MAE'),
-                    ])
-                    ),
-            ),
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6(
-                            'Testing MAE',
-                            className='text-light'),
-                        html.Div(id='card_Testing_MAE'),
-                    ])
-                ),
-            ),
-        ]),
-        dbc.Row(
-            [
-                dbc.Col([
-                    html.Div([
-                        html.H5('Country Dropdown'),
-                    dcc.Dropdown(
-                        id='Country_Dropdown',
-                        multi=True,
-                        options=[{'label': x, 'value': x} for x in sorted(df['Country'].unique())],
-                        style={'color': 'black'},
-                        className='px-2 bg-light border, mb-4'
-                    ),
-                    ])
-                ],xs=12, sm=12, md=6, lg=4, xl=4),
-            dbc.Col([
+def kpi_card(title, value, icon, color, suffix=""):
+    return dbc.Card([
+        dbc.CardBody([
+            html.Div([
+                html.I(className=f"fas fa-{icon} fa-2x", style={'color': COLORS[color]}),
                 html.Div([
-                html.H5('Year Checklist'),
-                dcc.Checklist(
-                    id='year_checklist',
-                    options=[
-                        {'label': str(year), 'value': year} for year in sorted(df['Year'].unique())],
-                    value=sorted(df['Year'].unique()),
-                    inline=True,
-                    className='ml-5'
-                        )
-                    ])
-                    ])
-            ]
-        ),
+                    html.H6(title, className="text-muted mb-1"),
+                    html.H3(f"{value}{suffix}", className="fw-bold")
+                ], className="ms-3")
+            ], className="d-flex align-items-center")
+        ])
+    ], className="border-0 shadow-sm h-100")
 
-        dbc.Row(
-            [
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            html.H5(
-                                'Product Contribution to Sales',
-                                className='text-light'
-                            ),
-                            dcc.Graph(id='product_contribution_chart', figure={}),
-                        ])
-                    ),
-                    xs=12, sm=12, md=6, lg=4, xl=4
+layout = dbc.Container([
+    # Header
+    dbc.Row([dbc.Col([html.H1("Product Performance Analytics", className="fw-bold mb-2",
+                              style={'color': COLORS['dark']}),
+                      html.P("Analyze product profitability, sales trends, and regional distribution.",
+                             className="text-muted mb-4")])]),
 
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            html.H5(
-                                'Product Contribution to Sales',
-                                className='text-light'),
-                                    dcc.Graph(id='discount_band_impact_chart', figure={}),
-                                ])
-                        ),
-                    xs=12, sm=12, md=6, lg=4, xl=4
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            html.H5(
-                                'Profitability of Product',
-                                className='text-light'),
-                    dcc.Graph(id='profitability_chart', figure={}),
-                        ])
-                    ),
-                    xs=12, sm=12, md=6, lg=4, xl=4
-                )
-            ]
-        ),
+    # KPI Row
+    dbc.Row([
+        dbc.Col(kpi_card("Total Sales", f"${get_kpi_metrics()['total_sales']:,.0f}", "dollar-sign", "primary"),
+                xs=12, sm=6, md=3, className="mb-4"),
+        dbc.Col(kpi_card("Total Profit", f"${get_kpi_metrics()['total_profit']:,.0f}", "chart-line", "success"),
+                xs=12, sm=6, md=3, className="mb-4"),
+        dbc.Col(kpi_card("Units Sold", f"{get_kpi_metrics()['total_units']:,.0f}", "box", "warning"),
+                xs=12, sm=6, md=3, className="mb-4"),
+        dbc.Col(kpi_card("Avg Margin", f"{get_kpi_metrics()['avg_profit_margin']:.1f}", "percent", "secondary", "%"),
+                xs=12, sm=6, md=3, className="mb-4"),
+    ]),
 
-        dbc.Row(
-            [
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            html.H5(
-                                'Profit and Lost for Each product',
-                                className='text-light'),
-                    dcc.Graph(id='Waterfall_product_details', figure={}),
-                        ])
-                    ),
-                     xs=4, sm=4, md=2, lg=4, xl=4,
-                    className="mb-3"
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            html.H5(
-                                'Variable Coorelation on Product',
-                                className='text-light'),
-                    dcc.Graph(id='heatmap_correlation', figure={}),
-                        ])
-                    ),
-                    xs=8, sm=8, md=6, lg=8, xl=8,
-                    className='mb-5'
+    # Filters Row (simplified)
+    dbc.Row([
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("🌍 Region & Product", className="fw-bold mb-0")),
+                          dbc.CardBody([
+                              html.Label("Country", className="fw-bold small"),
+                              dcc.Dropdown(id="product_country", options=[{"label": c, "value": c}
+                                                                           for c in sorted(df["Country"].unique())],
+                                           value=list(df["Country"].unique()), multi=True, className="mb-3"),
+                              html.Label("Product", className="fw-bold small"),
+                              dcc.Dropdown(id="product_name", options=[{"label": p, "value": p}
+                                                                        for p in sorted(df["Product"].unique())],
+                                           value=list(df["Product"].unique()), multi=True, className="mb-3"),
+                          ])], className="shadow-sm border-0 h-100"), xs=12, md=4, className="mb-4"),
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📊 Segment & Profit", className="fw-bold mb-0")),
+                          dbc.CardBody([
+                              html.Label("Segment", className="fw-bold small"),
+                              dcc.Dropdown(id="product_segment", options=[{"label": s, "value": s}
+                                                                           for s in sorted(df["Segment"].unique())],
+                                           value=list(df["Segment"].unique()), multi=True, className="mb-3"),
+                              html.Label("Profit Range ($)", className="fw-bold small"),
+                              dcc.RangeSlider(id="product_profit_range", min=df["Profit"].min(), max=df["Profit"].max(),
+                                              step=5000, value=[df["Profit"].min(), df["Profit"].max()],
+                                              marks={int(df["Profit"].min()): f'{int(df["Profit"].min()/1000)}k',
+                                                     int(df["Profit"].max()): f'{int(df["Profit"].max()/1000)}k'},
+                                              className="mt-2")
+                          ])], className="shadow-sm border-0 h-100"), xs=12, md=4, className="mb-4"),
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📅 Time Period", className="fw-bold mb-0")),
+                          dbc.CardBody([
+                              html.Label("Year", className="fw-bold small"),
+                              dcc.Dropdown(id="product_year", options=[{"label": str(y), "value": y}
+                                                                        for y in sorted(df["Year"].unique())],
+                                           value=list(df["Year"].unique()), multi=True, className="mb-3"),
+                              html.Label("Date Range", className="fw-bold small"),
+                              dcc.DatePickerRange(id="product_date_range", min_date_allowed=df["Date"].min(),
+                                                  max_date_allowed=df["Date"].max(),
+                                                  start_date=df["Date"].min(), end_date=df["Date"].max(),
+                                                  className="w-100")
+                          ])], className="shadow-sm border-0 h-100"), xs=12, md=4, className="mb-4"),
+    ]),
 
-                )
-            ]
-        ),
-    ]
-)
+    # Row 1: Monthly Trend + Product Pie
+    dbc.Row([
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📈 Monthly Profit Trend", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_monthly_chart",
+                                                  config={'displayModeBar': False, 'responsive': True},
+                                                  style={"height": "350px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=8, className="mb-4"),
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("🎯 Product Profit Share", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_pie_chart",
+                                                  config={'displayModeBar': False, 'responsive': True},
+                                                  style={"height": "350px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=4, className="mb-4"),
+    ]),
 
-# Callback to update product contribution chart
+    # Row 2: Profit by Product & Year + Monthly Profit by Year
+    dbc.Row([
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📊 Profit by Product & Year", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_profit_year_chart",
+                                                  config={'displayModeBar': False, 'responsive': True},
+                                                  style={"height": "350px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=6, className="mb-4"),
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📅 Monthly Profit by Year", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_monthly_year_chart",
+                                                  config={'displayModeBar': False, 'responsive': True},
+                                                  style={"height": "350px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=6, className="mb-4"),
+    ]),
+
+    # Row 3: Geographic Profit Map + Country Profit vs Discount
+    dbc.Row([
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("🌍 Profit by Country", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_geo_map",
+                                                  config={'displayModeBar': True, 'responsive': True},
+                                                  style={"height": "400px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=6, className="mb-4"),
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📉 Country Profit vs Discount", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_country_scatter",
+                                                  config={'displayModeBar': False, 'responsive': True},
+                                                  style={"height": "400px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=6, className="mb-4"),
+    ]),
+
+    # Row 4: Product Efficiency Bar + (maybe a small insight card)
+    dbc.Row([
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("⚙️ Product Efficiency (Profit/Unit)", className="fw-bold mb-0")),
+                          dbc.CardBody([dcc.Graph(id="product_efficiency_chart",
+                                                  config={'displayModeBar': False, 'responsive': True},
+                                                  style={"height": "350px", "width": "100%"})],
+                                       style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=8, className="mb-4"),
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📌 Discount Impact", className="fw-bold mb-0")),
+                          dbc.CardBody([
+                              html.H5("T‑Test: Low vs High Discount", className="fw-bold"),
+                              html.P(id="product_ttest_result", className="text-muted")
+                          ], style={"padding": "1rem"})],
+                        className="shadow-sm border-0 h-100"), xs=12, md=4, className="mb-4"),
+    ]),
+
+    # Row 5: Discount Rate vs Profit Table (AG Grid)
+    dbc.Row([
+        dbc.Col(dbc.Card([dbc.CardHeader(html.H6("📋 Discount Rate vs Profit – Detailed", className="fw-bold mb-0")),
+                          dbc.CardBody([
+                              AgGrid(id="product_discount_table",
+                                     rowData=discount_profit_table.to_dict("records"),
+                                     columnDefs=[
+                                         {"headerName": "Year", "field": "Year", "filter": True, "sortable": True},
+                                         {"headerName": "Country", "field": "Country", "filter": True, "sortable": True},
+                                         {"headerName": "Product", "field": "Product", "filter": True, "sortable": True},
+                                         {"headerName": "Discount Rate (%)", "field": "Discount_Rate",
+                                          "filter": "agNumberColumnFilter", "sortable": True},
+                                         {"headerName": "Profit", "field": "Profit",
+                                          "filter": "agNumberColumnFilter", "sortable": True,
+                                          "valueFormatter": {"function": "params.value ? '$' + params.value.toLocaleString() : ''"}}
+                                     ],
+                                     defaultColDef={"resizable": True, "flex": 1},
+                                     dashGridOptions={"pagination": True, "paginationPageSize": 10},
+                                     style={"height": "400px", "width": "100%"},
+                                     className="ag-theme-alpine")
+                          ], style={"padding": "0.5rem"})],
+                        className="shadow-sm border-0"), xs=12, className="mb-4"),
+    ])
+], fluid=True, className="py-4", style={'backgroundColor': '#F8F9FA'})
+
+# ------------------------------------------------------------
+# CALLBACKS
+# ------------------------------------------------------------
 @callback(
-    Output('product_contribution_chart', 'figure'),
-    [Input('Country_Dropdown', 'value'),
-     Input('year_checklist', 'value')
-     ]
+    [Output("product_monthly_chart", "figure"),
+     Output("product_pie_chart", "figure"),
+     Output("product_profit_year_chart", "figure"),
+     Output("product_monthly_year_chart", "figure"),
+     Output("product_geo_map", "figure"),
+     Output("product_country_scatter", "figure"),
+     Output("product_efficiency_chart", "figure"),
+     Output("product_ttest_result", "children"),
+     Output("product_discount_table", "rowData")],
+    [Input("product_country", "value"),
+     Input("product_name", "value"),
+     Input("product_segment", "value"),
+     Input("product_profit_range", "value"),
+     Input("product_year", "value"),
+     Input("product_date_range", "start_date"),
+     Input("product_date_range", "end_date")]
 )
-def update_product_contribution_chart(selected_countries, selected_years):
-    if not selected_countries:
-        return {}
+def update_product_charts(countries, products, segments, profit_range, years, start_date, end_date):
+    # Filter data
+    dff = df.copy()
+    dff = dff[dff["Country"].isin(countries)]
+    dff = dff[dff["Product"].isin(products)]
+    dff = dff[dff["Segment"].isin(segments)]
+    dff = dff[dff["Year"].isin(years)]
+    dff = dff[(dff["Profit"] >= profit_range[0]) & (dff["Profit"] <= profit_range[1])]
+    if start_date and end_date:
+        dff = dff[(dff["Date"] >= start_date) & (dff["Date"] <= end_date)]
 
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
-    product_sales = filtered_df.groupby('Product')['Sales'].sum().reset_index()
+    # 1. Monthly Profit Trend
+    monthly = dff.groupby(["Year", "Month"])["Profit"].sum().reset_index()
+    monthly_fig = px.line(monthly, x="Month", y="Profit", color="Year",
+                          color_discrete_sequence=[COLORS['primary'], COLORS['secondary']],
+                          labels={"Month": "Month", "Profit": "Profit ($)"})
+    monthly_fig.update_layout(plot_bgcolor='white', paper_bgcolor='white',
+                              margin=dict(l=40, r=40, t=40, b=40))
 
-    fig = px.bar(product_sales, x='Product', y='Sales', color='Product',
-                 title='Product Contribution to Sales',
-                 labels={'Sales': 'Total Sales', 'Product': 'Product'},
-                 color_discrete_sequence=color_palette)
-    fig.update_layout(xaxis_tickangle=-45, )
+    # 2. Product Pie (filtered)
+    pie_data = dff.groupby("Product")["Profit"].sum().reset_index()
+    pie_fig = px.pie(pie_data, names="Product", values="Profit", hole=0.4,
+                     color_discrete_sequence=px.colors.qualitative.Set3)
+    pie_fig.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20))
 
-    return fig
+    # 3. Profit by Product & Year (filtered)
+    prod_year = dff.groupby(["Year", "Product"])["Profit"].sum().reset_index()
+    prod_year_fig = px.bar(prod_year, x="Product", y="Profit", color="Year", barmode="group",
+                           color_discrete_sequence=[COLORS['primary'], COLORS['secondary']],
+                           labels={"Profit": "Profit ($)"})
+    prod_year_fig.update_layout(plot_bgcolor='white', paper_bgcolor='white',
+                                margin=dict(l=40, r=40, t=40, b=40))
 
-# Callback to update discount band impact chart
-@callback(
-    Output('discount_band_impact_chart', 'figure'),
-    [Input('Country_Dropdown', 'value'),
-     Input('year_checklist', 'value')]
-)
-def update_discount_band_impact_chart(selected_countries, selected_years):
-    if not selected_countries:
-        return {}
+    # 4. Monthly Profit by Year (filtered)
+    month_year = dff.groupby(["Year", "Month_Name"])["Profit"].sum().reset_index()
+    # ensure correct order
+    month_order = ["January","February","March","April","May","June","July","August",
+                   "September","October","November","December"]
+    month_year["Month_Name"] = pd.Categorical(month_year["Month_Name"], categories=month_order, ordered=True)
+    month_year = month_year.sort_values("Month_Name")
+    month_year_fig = px.bar(month_year, x="Month_Name", y="Profit", color="Year", barmode="group",
+                            color_discrete_sequence=[COLORS['primary'], COLORS['secondary']],
+                            labels={"Profit": "Profit ($)", "Month_Name": "Month"})
+    month_year_fig.update_layout(plot_bgcolor='white', paper_bgcolor='white',
+                                 margin=dict(l=40, r=40, t=40, b=40))
 
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
+    # 5. Geographic Map (filtered)
+    geo_data = dff.groupby("Country")["Profit"].sum().reset_index()
+    country_map = {'United States of America': 'United States', 'USA': 'United States'}
+    geo_data["Country_plot"] = geo_data["Country"].map(lambda x: country_map.get(x, x))
+    geo_fig = px.choropleth(geo_data, locations="Country_plot", locationmode="country names",
+                            color="Profit", hover_name="Country_plot",
+                            color_continuous_scale="Viridis", projection="natural earth",
+                            labels={"Profit": "Total Profit ($)"})
+    geo_fig.update_geos(showcoastlines=True, coastlinecolor="Black", showland=True, landcolor="white")
+    geo_fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), coloraxis_colorbar=dict(title="Profit"))
 
+    # 6. Country Profit vs Discount (filtered)
+    country_scatter_data = dff.groupby("Country").agg(
+        Total_Profit=("Profit", "sum"),
+        Avg_Discount=("Discount_Rate", "mean"),
+        Total_Sales=("Sales", "sum")
+    ).reset_index()
+    country_scatter_fig = px.scatter(country_scatter_data, x="Avg_Discount", y="Total_Profit",
+                                     size="Total_Sales", text="Country",
+                                     labels={"Avg_Discount": "Avg Discount Rate", "Total_Profit": "Total Profit ($)"})
+    country_scatter_fig.update_traces(textposition="top center")
+    country_scatter_fig.update_layout(plot_bgcolor='white', paper_bgcolor='white',
+                                      margin=dict(l=40, r=40, t=40, b=40))
 
+    # 7. Product Efficiency (filtered – but we show overall; filtering would make it empty)
+    # Use precomputed overall product_efficiency; no need to filter.
+    eff_fig = px.bar(product_efficiency, x="Product", y="Avg_Profit_per_Unit",
+                     color="Avg_Gross_Margin", color_continuous_scale="Viridis",
+                     labels={"Avg_Profit_per_Unit": "Avg Profit per Unit ($)",
+                             "Avg_Gross_Margin": "Gross Margin"})
+    eff_fig.update_layout(plot_bgcolor='white', paper_bgcolor='white',
+                          margin=dict(l=40, r=40, t=40, b=40))
 
-    # Grouping the product and calculate average profit margin and discount efficiency
-    Product_Metrics = filtered_df.groupby('Product').agg({'Profit Margin': 'mean', 'Discount Efficiency': 'mean' }).reset_index()
+    # 8. T-Test result (overall, not filtered)
+    from utils import t_stat, p_value
+    ttest_text = f"T-statistic: {t_stat:.3f}, p-value: {p_value:.4f}<br>"
+    if p_value < 0.05:
+        ttest_text += "Significant difference: Discount strategy impacts profit."
+    else:
+        ttest_text += "No significant difference observed."
 
-    # plotly the pie chat
-    fig = px.pie(Product_Metrics, names='Product', values='Discount Efficiency',
-                 title='Discount Efficiency by Product',
-                 color_discrete_sequence=color_palette)
-                 #labels={'Sales': 'Total Sales', 'Discount Band': 'Discount Band'})
+    # 9. Table data (filtered)
+    table_data = dff[["Year", "Country", "Product", "Discount_Rate", "Profit"]].copy()
+    table_data["Discount_Rate"] = (table_data["Discount_Rate"] * 100).round(2)
+    table_data = table_data.sort_values(["Product", "Discount_Rate"])
 
-   # fig.update_layout(height=500)
-
-    return fig
-
-# Callback to update profitability chart
-@callback(
-    Output('profitability_chart', 'figure'),
-    [Input('Country_Dropdown', 'value'),
-     Input('year_checklist', 'value')]
-)
-def update_profitability_chart(selected_countries, selected_years):
-    if not selected_countries:
-        return {}
-
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
-
-
-
-    # Group by product and calculate average sales growth
-    avg_sales_growth = filtered_df.groupby('Product')['Sales Growth'].mean().reset_index()
-
-    # Sort products by average sales growth
-    avg_sales_growth = avg_sales_growth.sort_values(by='Sales Growth', ascending=False)
-
-    #ploting the sales growth for each product
-    fig = px.funnel(avg_sales_growth,
-                    x='Product',
-                    y= 'Sales Growth',
-                    orientation= 'v',
-                    title= ' Sales Growth Funnel by Product',
-                    color_discrete_sequence=color_palette
-
-                    )
-    #fig.update_layout(height=500)
-    return fig
-
-
-@callback(
-    Output('Waterfall_product_details', 'figure'),
-    [Input('Country_Dropdown', 'value'),
-     Input('year_checklist',  'value')]
-)
-def update_Waterfall_product_details(selected_countries, selected_years):
-    if not selected_countries:
-        return {}
-
-
-    # filter the DataFrame base on selected coluntriess
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
-
-    # calculate the lost Aamount
-    filtered_df['Lost Amount'] = filtered_df['Discounts'] - (filtered_df['Units Sold'] * (filtered_df['Sale Price'] - filtered_df['Manufacturing Price']))
-
-    #Group by product and calculate total profit and lost
-    profit_lost_df = filtered_df.groupby('Product').agg({'Profit': 'sum', 'Lost Amount': 'sum'}).reset_index()
-
-    # Sort by profit in descending order
-    profit_lost_df =profit_lost_df.sort_values(by='Profit', ascending=False)
-
-    # creating the water fall chart
-    fig = go.Figure(go.Waterfall(
-        name='Profit and Lost',
-        orientation='v',
-        measure=['relative', 'relative'] * (len(profit_lost_df) // 2),
-        x=profit_lost_df['Product'],
-        y=profit_lost_df['Profit'],
-        connector={'line': {'color': 'rgb(63, 63, 63)'}},
-        decreasing={'marker': {'color': "#FF4136"}},
-        increasing={'marker': {'color': "#2ECC40"}},
-        totals={'marker': {'color': "#FF851B"}},
-
-    )
-                    )
-    # updating layout
-
-    fig.update_layout(
-        title='Profit and lost waterfall chart by Product',
-        showlegend=True,
-
-    )
-
-    return fig
-
-# Callback to update heatmap correlation
-@callback(
-    Output('heatmap_correlation', 'figure'),
-    [Input('Country_Dropdown', 'value'),
-     Input('year_checklist', 'value')]
-)
-def update_heatmap_correlation(selected_countries, selected_years):
-    if not selected_countries:
-        return {}
-
-    # Filter the DataFrame based on selected countries
-    filtered_df = df[df['Country'].isin(selected_countries) & df['Year'].isin(selected_years)]
-
-    # Select relevant columns
-    columns_of_interest = ['Product', 'Segment', 'Discount Band', 'Discount Efficiency', 'Profit Margin', 'Sales Growth', 'Sale Price', 'Discounts', 'COGS', 'Profit', 'Sales', 'Units Sold', ' Manufacturing Price']
-
-    # Remove leading and trailing spaces from column names
-    columns_of_interest = [col.strip() for col in columns_of_interest]
-
-    filtered_df = filtered_df[columns_of_interest]
-
-    # pivot the DataFrame so that each row represents a product and each column represents a diferent variables
-    filtered_df = filtered_df.select_dtypes(include='number')
-
-    # Compute correlation matrix
-    correlation_matrix = filtered_df.corr()
-
-    # Transpose correlation matrix so that each product becomes a column
-    #correlation_matrix = correlation_matrix.T
-
-    # Plot heatmap
-    fig = px.imshow(correlation_matrix,
-                    labels=dict(color="Correlation"),
-                    x=correlation_matrix.columns,
-                    y=correlation_matrix.columns,
-                    title='Correlation Heatmap',
-                    color_continuous_scale='RdBu',
-                    color_continuous_midpoint=0,
-
-
-                    )
-
-
-
-    fig.update_layout(
-        title='Heatmap Correlation between Product and Important Variables',
-        xaxis=dict(title='Variables'),
-        yaxis=dict(title='Product',
-
-        )
-
-    )
-
-    return fig
+    return (monthly_fig, pie_fig, prod_year_fig, month_year_fig,
+            geo_fig, country_scatter_fig, eff_fig, html.Div(ttest_text),
+            table_data.to_dict("records"))

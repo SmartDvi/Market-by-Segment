@@ -1,5 +1,5 @@
 ## Market by Segment – Business Analytics Dashboard
-A comprehensive, end‑to‑end business intelligence solution built exclusively on your own sales data. The dashboard transforms raw transactional data into actionable insights, predictive forecasts, and strategic recommendations. Attached to the repo is also a detailed analysis and explaininer (analysis interpretation) developed on Jupyternote aid the understanding of both technical and non-technical stakeholders. It combines professional data engineering, robust machine learning, and an elegant Dash interface to empower executives, analysts, and operations teams with evidence‑based decision making.
+A comprehensive, end‑to‑end business intelligence solution extracting key insights from the sales dataset tp optimisse profitabiity and business growth. The dashboard transforms raw transactional data into actionable insights, predictive forecasts, and strategic recommendations. Attached to the repo is also a detailed analysis and explaininer (analysis interpretation) developed on Jupyternote aid the understanding of both technical and non-technical stakeholders. It combines professional data engineering, robust machine learning, and an elegant Dash interface to empower executives, analysts, and operations teams with evidence‑based decision making.
 
 ### 📑 Table of Contents
 - Project Overview

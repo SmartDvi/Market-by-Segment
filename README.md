@@ -1,6 +1,17 @@
 ## Market by Segment – Business Analytics Dashboard
 A comprehensive, end‑to‑end business intelligence solution extracting key insights from the sales dataset tp optimisse profitabiity and business growth. The dashboard transforms raw transactional data into actionable insights, predictive forecasts, and strategic recommendations. Attached to the repo is also a detailed analysis and explaininer (analysis interpretation) developed on Jupyternote aid the understanding of both technical and non-technical stakeholders. It combines professional data engineering, robust machine learning, and an elegant Dash interface to empower executives, analysts, and operations teams with evidence‑based decision making.
 
+### Project previews
+<img width="1856" height="966" alt="Screenshot from 2026-05-04 19-56-32" src="https://github.com/user-attachments/assets/17db305e-8d04-4cd2-9ab7-ee32163f9070" />
+
+<img width="1856" height="966" alt="Screenshot from 2026-05-04 19-55-14" src="https://github.com/user-attachments/assets/c2bb1e7b-f422-4d37-92dd-26fe4b3ff9be" />
+
+<img width="1856" height="966" alt="Screenshot from 2026-05-04 19-56-56" src="https://github.com/user-attachments/assets/0065b575-f581-4083-8631-d39658a30274" />
+
+<img width="1856" height="966" alt="Screenshot from 2026-05-04 19-57-14" src="https://github.com/user-attachments/assets/ca07dc95-d78d-4cbb-9ea7-20481dd0296c" />
+
+
+
 ### 📑 Table of Contents
 - Project Overview
 
